@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>zzro zzi — experiment</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@500;700;900&display=swap');
+
+:root{
+  --bg:#FAF6EC;
+  --orange:#FF5A1F;
+  --orange-deep:#E2440A;
+  --ink:#2b2620;
+  --yellow:#FCE83A;
+  --yellow-deep:#F4D90C;
+  --line: rgba(43,38,32,0.12);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--bg);
+  color:var(--orange);
+  font-family:'Space Grotesk','Noto Sans KR',sans-serif;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.screen{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  opacity:0; visibility:hidden;
+  transition:opacity .55s ease;
+  padding:24px;
+}
+.screen.active{ opacity:1; visibility:visible; }
+
+/* ---------- Top marquee (no bottom border) ---------- */
+.tagline{
+  position:absolute; top:0; left:0; width:100%; height:34px;
+  overflow:hidden; display:flex; align-items:center;
+  background:var(--bg); z-index:50;
+}
+.tagline .track{
+  display:flex; white-space:nowrap;
+  font-family:'Noto Sans KR',sans-serif;
+  font-weight:700; font-size:12px; letter-spacing:.16em;
+  color:var(--ink); opacity:.38; text-transform:uppercase;
+  animation: marquee 28s linear infinite;
+}
+.tagline .track span{ white-space:nowrap; flex-shrink:0; }
+@keyframes marquee{
+  from{ transform:translateX(0); }
+  to{ transform:translateX(-50%); }
+}
+
+/* ---------- MAIN SCREEN ---------- */
+#main .title-row{
+  display:flex; align-items:flex-end; flex-wrap:wrap; justify-content:center;
+  gap: clamp(2px,1vw,10px);
+  margin-bottom: 5vh;
+}
+.letter-btn{
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;
+  font-size: clamp(48px, 12vw, 140px);
+  line-height:1;
+  color:var(--orange);
+  background:none; border:none; cursor:pointer;
+  padding:0 .04em;
+  transition: transform .3s ease, color .3s ease;
+  position:relative;
+  overflow: visible;
+}
+.letter-btn.gap{ margin-right: clamp(14px,3vw,44px); }
+.letter-btn:hover{ transform: translateY(-8px); color:var(--orange-deep); }
+.letter-btn:active{ transform: translateY(2px) scale(.96); }
+
+/* ---------- shared morph filter classes ---------- */
+.final-soft{ filter:url(#soft-final); }
+/* spike: small extra space so edges aren't clipped */
+.final-spike{
+  filter:url(#spike-final);
+  padding: .08em;
+  margin: -.08em;
+}
+
+/* ---------- z drip — connected stroke flowing bottom-left ---------- */
+.glyph{ position:relative; display:inline-block; }
+/* SVG drip lives inside the glyph span, absolutely positioned */
+.z-drip-wrap{
+  position:absolute;
+  left: -18%;
+  bottom: -28%;
+  width: 60%;
+  height: 55%;
+  pointer-events:none;
+}
+
+#main .sub{
+  font-family:'Noto Sans KR',sans-serif;
+  font-weight:500; color:var(--ink); opacity:.5;
+  font-size:14px; letter-spacing:.05em; text-align:center;
+}
+
+/* completion overlay text */
+#main .complete-msg{
+  margin-top: 24px; text-align:center;
+  font-family:'Noto Sans KR',sans-serif;
+}
+#main .complete-msg h2{
+  font-weight:900; font-size: clamp(20px,4vw,32px);
+  color:var(--orange-deep); margin:0 0 22px 0;
+  opacity:0; transform:translateY(10px);
+  transition:opacity 1s ease, transform 1s ease;
+}
+#main .complete-msg h2.show{opacity:1; transform:translateY(0);}
+#main .try-btn{
+  font-family:'Noto Sans KR',sans-serif;
+  font-weight:900; font-size:16px;
+  background:var(--orange); color:var(--bg);
+  border:none; border-radius:40px;
+  padding:16px 36px; cursor:pointer;
+  opacity:0; transform:scale(.85);
+  transition:opacity .6s ease, transform .6s ease, background .25s ease;
+  letter-spacing:.05em;
+}
+#portfolioBtn{
+  opacity:0; transform:scale(.85);
+  transition:opacity .6s ease, transform .6s ease, background .25s ease;
+}
+#portfolioBtn.show{ opacity:1; transform:scale(1); }
+#main .try-btn.show{opacity:1; transform:scale(1);}
+#main .try-btn:hover{background:var(--orange-deep);}
+
+/* ---------- 짱찌 rearrangement overlay ---------- */
+#jjangji{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition: opacity .5s ease;
+  background: rgba(250,246,236,0.96);
+  z-index: 10;
+}
+#jjangji.show{ opacity:1; pointer-events:auto; }
+#jjangji svg{ width:min(88vw,820px); height:auto; overflow:visible; }
+
+/* close button inside 짱찌 overlay */
+#jjangjiClose{
+  position:absolute; top:28px; right:32px;
+  font-family:'Noto Sans KR',sans-serif; font-weight:700; font-size:13px;
+  color:var(--ink); opacity:.42; background:none;
+  border:1px solid var(--line); border-radius:30px;
+  padding:8px 18px; cursor:pointer; letter-spacing:.06em;
+  transition: opacity .2s, border-color .2s;
+}
+#jjangjiClose:hover{ opacity:.9; border-color:var(--orange); }
+
+/* small early-exit button */
+.stay-btn{
+  position:absolute; bottom:26px; right:30px;
+  display:none;
+  font-family:'Noto Sans KR',sans-serif; font-weight:700; font-size:11px;
+  color:var(--ink); opacity:.38; background:none;
+  border:1px solid var(--line); border-radius:30px;
+  padding:7px 15px; cursor:pointer; letter-spacing:.04em;
+  transition: opacity .2s ease, border-color .2s ease;
+}
+.stay-btn.show{ display:block; }
+.stay-btn:hover{ opacity:.9; border-color:var(--orange); }
+
+/* ---------- LETTER EXPERIMENT SCREEN ---------- */
+#letter{ justify-content:space-between; padding-top:90px; padding-bottom:40px; }
+.back-btn{
+  position:absolute; top:30px; right:34px;
+  font-family:'Noto Sans KR',sans-serif; font-weight:700;
+  font-size:13px; color:var(--ink); opacity:.45;
+  background:none; border:1px solid var(--line); border-radius:30px;
+  padding:8px 18px; cursor:pointer; letter-spacing:.08em;
+  transition:opacity .2s, border-color .2s;
+}
+.back-btn:hover{opacity:.9; border-color:var(--orange);}
+
+.exp-stage{
+  flex:1; width:100%; max-width:760px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  position:relative; overflow:visible;
+}
+.exp-hint{
+  font-family:'Noto Sans KR',sans-serif; font-weight:700;
+  font-size:13px; color:var(--ink); opacity:.4;
+  letter-spacing:.06em; margin-top:18px; text-align:center;
+}
+.exp-label{
+  font-family:'Noto Sans KR',sans-serif; font-weight:700;
+  font-size:11px; color:var(--ink); opacity:.38;
+  letter-spacing:.22em; text-transform:uppercase; margin-bottom:6px;
+}
+
+.drag-letter{
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;
+  font-size: clamp(110px, 25vw, 220px);
+  line-height:1;
+  color:var(--orange);
+  position:relative;
+  cursor:grab;
+  touch-action:none;
+  will-change:transform;
+  overflow:visible;
+  /* extra room so spike filter never clips */
+  padding: 0.3em;
+  margin: -0.3em;
+}
+.drag-letter.grabbing{cursor:grabbing;}
+.drag-letter.smooth{ transition: transform .65s cubic-bezier(.22,.7,.2,1); }
+.drag-letter.dunked-soft{ filter:url(#dunk-filter-soft); }
+.drag-letter.dunked-spike{ filter:url(#dunk-filter-spike); }
+.drag-letter.final-soft{ filter:url(#soft-final); }
+.drag-letter.final-spike{
+  filter:url(#spike-final);
+}
+
+/* tank */
+.tank-wrap{ width:100%; max-width:560px; margin-top:8px; }
+.tank{
+  width:100%; height:170px;
+  border:2px solid var(--ink); border-top:none;
+  border-radius:0 0 14px 14px;
+  position:relative; overflow:hidden;
+  background:transparent;
+}
+.tank svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+/* ---------- SANDBOX SCREEN ---------- */
+#sandbox{ padding:70px 18px 18px; }
+.sb-wrap{ width:100%; max-width:1000px; height:100%; display:flex; flex-direction:column; gap:12px; }
+.sb-toolbar{
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  font-family:'Noto Sans KR',sans-serif;
+}
+.sb-btn{
+  font-family:'Noto Sans KR',sans-serif; font-weight:700; font-size:12.5px;
+  border:1.5px solid var(--orange); color:var(--orange); background:none;
+  padding:9px 16px; border-radius:30px; cursor:pointer; letter-spacing:.04em;
+  transition: all .2s ease;
+}
+.sb-btn:hover{ background:var(--orange); color:var(--bg); }
+.sb-btn.active{ background:var(--orange); color:var(--bg); }
+.sb-btn.reset{ border-color:var(--ink); color:var(--ink); opacity:.55; margin-left:auto;}
+.sb-btn.reset:hover{ background:var(--ink); color:var(--bg); opacity:1;}
+.sb-canvas-wrap{ flex:1; border:2px solid var(--ink); border-radius:16px; overflow:hidden; min-height:0;}
+.sb-canvas-wrap svg{ width:100%; height:100%; display:block; }
+.sb-shape{ cursor:grab; }
+.sb-shape.grabbing{ cursor:grabbing; }
+.tank-label{
+  font-family:'Noto Sans KR',sans-serif; font-weight:700; font-size:11px;
+  letter-spacing:.18em; fill:var(--ink); opacity:.42; text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+
+<!-- ====== shared SVG filter defs ====== -->
+<svg width="0" height="0" style="position:absolute;overflow:visible">
+  <defs>
+    <!-- SOFT: goo blob effect, rounds all corners -->
+    <filter id="soft-final" x="-55%" y="-55%" width="210%" height="210%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.013 0.038" numOctaves="2" seed="11" result="turb"/>
+      <feDisplacementMap in="SourceGraphic" in2="turb" scale="9" xChannelSelector="R" yChannelSelector="G" result="disp"/>
+      <feGaussianBlur in="disp" stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 11 -5" result="goo"/>
+      <feComposite in="goo" in2="goo" operator="atop"/>
+    </filter>
+
+    <!--
+      SPIKE: hard pixel-art / vector-corner sharpening.
+      Low-frequency large-amplitude warp → hard alpha threshold → all curves become faceted corners.
+      Very large filter region so jagged protrusions don't clip.
+    -->
+    <filter id="spike-final" x="-30%" y="-30%" width="160%" height="160%"
+            color-interpolation-filters="sRGB">
+      <feTurbulence type="turbulence" baseFrequency="0.018 0.022"
+                    numOctaves="2" seed="5" result="turb"/>
+      <feDisplacementMap in="SourceGraphic" in2="turb" scale="18"
+                         xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+      <feComponentTransfer in="displaced">
+        <feFuncA type="discrete" tableValues="0 0 1 1"/>
+      </feComponentTransfer>
+    </filter>
+
+    <!-- DUNK SOFT: animated goo wobble -->
+    <filter id="dunk-filter-soft" x="-70%" y="-70%" width="240%" height="240%">
+      <feTurbulence id="dunkTurbSoft" type="fractalNoise"
+                    baseFrequency="0.01 0.01" numOctaves="2" seed="3" result="turb"/>
+      <feDisplacementMap id="dunkDispSoft" in="SourceGraphic" in2="turb"
+                         scale="0" xChannelSelector="R" yChannelSelector="G" result="disp"/>
+      <feGaussianBlur in="disp" stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 10 -4.5" result="goo"/>
+      <feComposite in="goo" in2="goo" operator="atop"/>
+    </filter>
+
+    <!-- DUNK SPIKE: animated jagged warp, hard edges -->
+    <filter id="dunk-filter-spike" x="-30%" y="-30%" width="160%" height="160%"
+            color-interpolation-filters="sRGB">
+      <feTurbulence id="dunkTurbSpike" type="turbulence"
+                    baseFrequency="0.018 0.018" numOctaves="2" seed="5" result="turb"/>
+      <feDisplacementMap id="dunkDispSpike" in="SourceGraphic" in2="turb"
+                         scale="0" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+      <feComponentTransfer in="displaced">
+        <feFuncA type="discrete" tableValues="0 0 1 1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+</svg>
+
+<div class="tagline"><div class="track" id="marqueeTrack"></div></div>
+
+<!-- ====== MAIN SCREEN ====== -->
+<section id="main" class="screen active">
+  <div class="title-row" id="titleRow"></div>
+  <div class="sub" id="mainSub">글자를 선택해 실험을 시작하세요</div>
+  <div class="complete-msg" id="completeMsg">
+    <h2 id="completeLine">어떻게든 변할 수 있지!</h2>
+    <button class="try-btn" id="tryBtn">너도 가능해!</button>
+    <a id="portfolioBtn" 
+       class="try-btn" 
+       style="display:inline-block; margin-top:12px; text-decoration:none;"
+       href="portfolio_v1.pdf" download="portfolio.pdf">
+       나에 대해 더 알고싶니?
+    </a>
+  </div>
+  <!-- 짱찌 rearrangement overlay -->
+  <div id="jjangji">
+    <svg viewBox="0 0 860 340" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- "짱" = zzr arranged like ㅉ+ㅏ+ㅇ in Korean reading -->
+      <!-- zzr block -->
+      <text x="30"  y="270" font-family="Space Grotesk,sans-serif" font-weight="700"
+            font-size="230" fill="#FF5A1F"
+            filter="url(#soft-final)" letter-spacing="-10">zz</text>
+      <text x="275" y="210" font-family="Space Grotesk,sans-serif" font-weight="700"
+            font-size="155" fill="#FF5A1F"
+            filter="url(#spike-final)">r</text>
+      <!-- "찌" = zzi arranged like ㅉ+ㅣ -->
+      <text x="440" y="270" font-family="Space Grotesk,sans-serif" font-weight="700"
+            font-size="230" fill="#FF5A1F"
+            filter="url(#soft-final)" letter-spacing="-10">zz</text>
+      <text x="688" y="270" font-family="Space Grotesk,sans-serif" font-weight="700"
+            font-size="230" fill="#FF5A1F"
+            filter="url(#soft-final)">i</text>
+      <!-- o below the r, like ㅇ underneath -->
+      <text x="280" y="330" font-family="Space Grotesk,sans-serif" font-weight="700"
+            font-size="110" fill="#FF5A1F"
+            filter="url(#spike-final)">o</text>
+            
+    </svg>
+  </div>
+  <button class="stay-btn" id="stayBtn">난 지금이 좋아!</button>
+</section>
+
+<!-- ====== LETTER EXPERIMENT SCREEN ====== -->
+<section id="letter" class="screen">
+  <button class="back-btn" id="backBtn">← 메인으로</button>
+  <div class="exp-stage">
+    <div class="exp-label" id="expLabel">EXPERIMENT</div>
+    <div class="drag-letter" id="dragLetter">z</div>
+    <div class="exp-hint" id="expHint">글자를 잡고 아래 용액 속으로 끌어다 넣어보세요</div>
+  </div>
+  <div class="tank-wrap">
+    <div class="tank" id="letterTank"></div>
+  </div>
+</section>
+
+<!-- ====== SANDBOX SCREEN ====== -->
+<section id="sandbox" class="screen">
+  <button class="back-btn" id="backBtn2">← 메인으로</button>
+  <div class="sb-wrap">
+    <div class="sb-toolbar">
+      <button class="sb-btn" data-shape="circle">○ 원</button>
+      <button class="sb-btn" data-shape="square">□ 사각형</button>
+      <button class="sb-btn" data-shape="triangle">△ 삼각형</button>
+      <button class="sb-btn" id="drawBtn" data-shape="draw">✎ 직접 그리기</button>
+      <button class="sb-btn reset" id="resetBtn">Reset</button>
+    </div>
+    <div class="sb-canvas-wrap">
+      <svg id="sbSvg" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet"
+           style="overflow:visible"></svg>
+    </div>
+  </div>
+</section>
+
+<script>
+/* =========================================================
+   DATA
+   ========================================================= */
+const LETTERS = [
+  {ch:'z', type:'soft',  gap:false},
+  {ch:'z', type:'soft',  gap:false},
+  {ch:'r', type:'spike', gap:false},
+  {ch:'o', type:'spike', gap:true },
+  {ch:'z', type:'soft',  gap:false},
+  {ch:'z', type:'soft',  gap:false},
+  {ch:'i', type:'soft',  gap:false},
+];
+const state = { transformed: LETTERS.map(()=>false), earlyAccept: false };
+
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs={}){
+  const el = document.createElementNS(NS, tag);
+  for(const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+/* ---- top marquee ---- */
+(function buildMarquee(){
+  const phrase = '  장지은   zzro zzi   장지   짱지      ';
+  const track = document.getElementById('marqueeTrack');
+  for(let i=0;i<2;i++){
+    const span = document.createElement('span');
+    span.textContent = phrase.repeat(8);
+    track.appendChild(span);
+  }
+})();
+
+/* =========================================================
+   Z DRIP GLYPH
+   Connected stroke that runs from the Z's bottom-left
+   corner and flows downward/left, like the z melted and
+   pulled out a soft hook — referencing the ㅈ form.
+   NOT a separate blob: it stays attached to the z.
+   ========================================================= */
+const Z_DRIP_PATH = `
+  M 0,60
+  C 8,58 18,54 22,46
+  C 26,38 20,28 16,22
+  C 12,16 10,8  18,4
+  C 26,0  38,6  40,14
+  C 42,22 32,32 30,42
+  C 28,50 34,60 44,64
+  C 54,68 66,64 72,56
+`;
+/* viewBox chosen so the drip reads as a downward-left tail */
+function zDripSVG(){
+  return `<svg class="z-drip-wrap" viewBox="-4 -4 88 80" preserveAspectRatio="none"
+       aria-hidden="true" style="overflow:visible">
+    <path d="${Z_DRIP_PATH.trim()}" fill="none" stroke="currentColor"
+          stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+function glyphHTML(ch, withDrip){
+  if(ch==='z' && withDrip){
+    return `<span class="glyph">${ch}${zDripSVG()}</span>`;
+  }
+  return `<span class="glyph">${ch}</span>`;
+}
+
+/* =========================================================
+   SCREEN MANAGEMENT
+   ========================================================= */
+const screens = {
+  main: document.getElementById('main'),
+  letter: document.getElementById('letter'),
+  sandbox: document.getElementById('sandbox'),
+};
+function showScreen(name){
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+/* =========================================================
+   MAIN SCREEN — render letters
+   ========================================================= */
+const titleRow = document.getElementById('titleRow');
+let jjangjiShown = false;
+
+function buildMain(){
+  titleRow.innerHTML = '';
+  LETTERS.forEach((L, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'letter-btn';
+    if(L.gap) btn.classList.add('gap');
+    const transformed = state.transformed[i];
+    if(transformed) btn.classList.add(L.type==='soft' ? 'final-soft':'final-spike');
+    btn.innerHTML = glyphHTML(L.ch, transformed && L.ch==='z');
+    btn.addEventListener('click', ()=>{
+      /* after completion, clicking any transformed letter shows the 짱찌 arrangement */
+      const showComplete = state.transformed.every(Boolean) || state.earlyAccept;
+      if(showComplete && transformed && !jjangjiShown){
+        showJjangji();
+        return;
+      }
+      if(showComplete && jjangjiShown){
+        hideJjangji();
+        return;
+      }
+      openLetter(i);
+    });
+    titleRow.appendChild(btn);
+  });
+  checkCompletion();
+}
+buildMain();
+
+function showJjangji(){
+  jjangjiShown = true;
+  document.getElementById('jjangji').classList.add('show');
+  document.getElementById('completeMsg').style.opacity = '0.15';
+  document.getElementById('titleRow').style.opacity = '0.08';
+}
+function hideJjangji(){
+  jjangjiShown = false;
+  document.getElementById('jjangji').classList.remove('show');
+  document.getElementById('completeMsg').style.opacity = '';
+  document.getElementById('titleRow').style.opacity = '';
+}
+
+function uniqueDoneCount(){
+  const chars = new Set();
+  LETTERS.forEach((L,i)=>{ if(state.transformed[i]) chars.add(L.ch); });
+  return chars.size;
+}
+
+function checkCompletion(){
+  const all = state.transformed.every(Boolean);
+  const showComplete = all || state.earlyAccept;
+  const sub = document.getElementById('mainSub');
+  const msg = document.getElementById('completeMsg');
+  const line = document.getElementById('completeLine');
+  const tryBtn = document.getElementById('tryBtn');
+  const stayBtn = document.getElementById('stayBtn');
+
+  if(showComplete){
+    sub.style.display='none';
+    msg.style.display='block';
+    setTimeout(()=> line.classList.add('show'), 400);
+    setTimeout(()=> tryBtn.classList.add('show'), 2200);
+    setTimeout(()=> document.getElementById('portfolioBtn').classList.add('show'), 2800);
+  } else {
+    sub.style.display='block';
+    msg.style.display='none';
+    line.classList.remove('show');
+    tryBtn.classList.remove('show');
+  }
+
+  const showStay = !all && !state.earlyAccept && uniqueDoneCount() >= 2;
+  stayBtn.classList.toggle('show', showStay);
+}
+
+document.getElementById('stayBtn').addEventListener('click', ()=>{
+  state.earlyAccept = true;
+  checkCompletion();
+});
+document.getElementById('tryBtn').addEventListener('click', ()=> showScreen('sandbox'));
+
+/* =========================================================
+   WAVE TANK — reusable
+   ========================================================= */
+function buildTank(container, type){
+  container.innerHTML = '';
+  const W = 560, H = 170;
+  const svg = svgEl('svg', {viewBox:`0 0 ${W} ${H}`, preserveAspectRatio:'none'});
+  const liquid  = svgEl('path', {fill:'#FCE83A', 'fill-opacity':'0.80'});
+  const liquid2 = svgEl('path', {fill:'#F4D90C', 'fill-opacity':'0.35'});
+  svg.appendChild(liquid2);
+  svg.appendChild(liquid);
+
+  const bubbleGroup = svgEl('g', {opacity:'0.5'});
+  svg.appendChild(bubbleGroup);
+  for(let i=0;i<6;i++){
+    const c = svgEl('circle', {r: 2+Math.random()*3, fill:'#fff'});
+    c.dataset.x     = 40 + Math.random()*(W-80);
+    c.dataset.speed = 0.3 + Math.random()*0.6;
+    c.dataset.phase = Math.random()*Math.PI*2;
+    bubbleGroup.appendChild(c);
+  }
+  container.appendChild(svg);
+
+  const baseY = 38;
+  const amp   = type==='soft' ? 9 : 13;
+  let t = 0, extraShake = 0;
+
+  function frame(){
+    t += 0.018;
+    let d, d2;
+    if(type==='soft'){
+      const pts=[], pts2=[], steps=40;
+      for(let i=0;i<=steps;i++){
+        const x = (W/steps)*i;
+        const y = baseY + Math.sin(x*0.018+t)*amp*(1+extraShake)
+                        + Math.sin(x*0.04 -t*1.6)*amp*0.45;
+        pts.push([x,y]);
+        pts2.push([x, y+10+Math.sin(x*0.03+t*1.2)*4]);
+      }
+      d  = `M0,${H} L`+pts.map(p=>p.join(',')).join(' L')+` L${W},${H} Z`;
+      d2 = `M0,${H} L`+pts2.map(p=>p.join(',')).join(' L')+` L${W},${H} Z`;
+    } else {
+      const pts=[], pts2=[], steps=22;
+      for(let i=0;i<=steps;i++){
+        const x   = (W/steps)*i;
+        const tri = Math.abs(((x*0.05+t*1.4)%2)-1)*2-1;
+        const y   = baseY+tri*amp*(1+extraShake)+Math.sin(t*2+i)*2;
+        pts.push([x,y]);
+        const tri2 = Math.abs((((x+30)*0.05+t*1.7)%2)-1)*2-1;
+        pts2.push([x, y+9+tri2*4]);
+      }
+      d  = `M0,${H} L`+pts.map(p=>p.join(',')).join(' L')+` L${W},${H} Z`;
+      d2 = `M0,${H} L`+pts2.map(p=>p.join(',')).join(' L')+` L${W},${H} Z`;
+    }
+    liquid.setAttribute('d',d);
+    liquid2.setAttribute('d',d2);
+    [...bubbleGroup.children].forEach(c=>{
+      const speed = +c.dataset.speed, phase = +c.dataset.phase;
+      const cy = H - ((t*speed*40+phase*20)%(H-baseY-10))-6;
+      c.setAttribute('cx',c.dataset.x);
+      c.setAttribute('cy', cy+baseY+8);
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  return { svg, setShake(v){ extraShake=v; } };
+}
+
+/* =========================================================
+   LETTER EXPERIMENT SCREEN
+   ========================================================= */
+const dragLetter   = document.getElementById('dragLetter');
+const expLabel     = document.getElementById('expLabel');
+const expHint      = document.getElementById('expHint');
+const letterTankEl = document.getElementById('letterTank');
+let currentIndex = -1;
+let letterTank   = null;
+let dragging     = false;
+let dragOffset   = {x:0,y:0};
+let basePos      = {x:0,y:0};
+let curTranslate = {x:0,y:0};
+let busy         = false;
+
+function openLetter(i){
+  currentIndex = i;
+  busy = false;
+  hideJjangji();
+  const L = LETTERS[i];
+  dragLetter.className = 'drag-letter';
+  const already = state.transformed[i];
+  if(already) dragLetter.classList.add(L.type==='soft' ? 'final-soft':'final-spike');
+  dragLetter.innerHTML = glyphHTML(L.ch, already && L.ch==='z');
+  dragLetter.style.transform = 'translate(0px,0px)';
+  curTranslate = {x:0,y:0};
+  expLabel.textContent = `EXPERIMENT / LETTER "${L.ch.toUpperCase()}"`;
+  expHint.textContent = already
+    ? '이미 변형되었습니다 — 다시 실험해볼 수도 있어요'
+    : (L.type==='soft'
+        ? '글자를 끌어 SOFT WAVE LIQUID 에 담가보세요'
+        : '글자를 끌어 SPIKE WAVE LIQUID 에 담가보세요');
+  letterTank = buildTank(letterTankEl, L.type);
+  showScreen('letter');
+}
+
+document.getElementById('backBtn').addEventListener('click', ()=>{ buildMain(); showScreen('main'); });
+document.getElementById('backBtn2').addEventListener('click', ()=> showScreen('main'));
+
+/* ---- drag ---- */
+dragLetter.addEventListener('pointerdown', (e)=>{
+  if(busy) return;
+  dragging = true;
+  dragLetter.classList.add('grabbing');
+  dragLetter.classList.remove('smooth');
+  dragLetter.setPointerCapture(e.pointerId);
+  dragOffset = {x:e.clientX, y:e.clientY};
+  basePos    = {...curTranslate};
+});
+dragLetter.addEventListener('pointermove', (e)=>{
+  if(!dragging) return;
+  curTranslate = {x: basePos.x+(e.clientX-dragOffset.x), y: basePos.y+(e.clientY-dragOffset.y)};
+  dragLetter.style.transform = `translate(${curTranslate.x}px,${curTranslate.y}px)`;
+});
+dragLetter.addEventListener('pointerup', ()=>{
+  if(!dragging) return;
+  dragging = false;
+  dragLetter.classList.remove('grabbing');
+  const lR = dragLetter.getBoundingClientRect();
+  const tR = letterTankEl.getBoundingClientRect();
+  const overlap = lR.bottom > tR.top+20 && lR.left < tR.right && lR.right > tR.left;
+  if(overlap && !busy){ runMorph(); }
+  else {
+    dragLetter.classList.add('smooth');
+    curTranslate = {x:0,y:0};
+    dragLetter.style.transform = 'translate(0px,0px)';
+  }
+});
+
+/* ---- morph sequence ---- */
+function runMorph(){
+  busy = true;
+  const L = LETTERS[currentIndex];
+  const lR = dragLetter.getBoundingClientRect();
+  const tR = letterTankEl.getBoundingClientRect();
+  const targetX = curTranslate.x + (tR.left+tR.width/2)  - (lR.left+lR.width/2);
+  const targetY = curTranslate.y + (tR.top +tR.height*.45)- (lR.top +lR.height/2);
+
+  dragLetter.classList.add('smooth');
+  dragLetter.style.transform = `translate(${targetX}px,${targetY}px)`;
+
+  setTimeout(()=>{
+    dragLetter.classList.add(L.type==='soft' ? 'dunked-soft':'dunked-spike');
+    if(letterTank) letterTank.setShake(1.8);
+    animateDunk(L.type, 1600, ()=>{
+      if(letterTank) letterTank.setShake(0);
+      dragLetter.classList.remove('dunked-soft','dunked-spike');
+      dragLetter.classList.add(L.type==='soft' ? 'final-soft':'final-spike');
+      if(L.ch==='z') dragLetter.innerHTML = glyphHTML('z', true);
+      dragLetter.style.transform = `translate(${curTranslate.x}px,${curTranslate.y}px)`;
+      setTimeout(()=>{
+        LETTERS.forEach((Lx,idx)=>{ if(Lx.ch===L.ch) state.transformed[idx]=true; });
+        setTimeout(()=>{ buildMain(); showScreen('main'); busy=false; }, 700);
+      }, 750);
+    });
+  }, 680);
+}
+
+function animateDunk(type, duration, done){
+  const start = performance.now();
+  const turb = document.getElementById(type==='soft' ? 'dunkTurbSoft':'dunkTurbSpike');
+  const disp = document.getElementById(type==='soft' ? 'dunkDispSoft':'dunkDispSpike');
+  function step(now){
+    const p   = Math.min(1,(now-start)/duration);
+    const wob = Math.sin(p*Math.PI*7)*(1-p);
+    if(type==='soft'){
+      turb.setAttribute('baseFrequency',(0.01+0.03*p).toFixed(4)+' '+(0.02+0.05*p).toFixed(4));
+      disp.setAttribute('scale',(Math.abs(wob)*24+p*5).toFixed(2));
+    } else {
+      /* keep low frequency throughout so the deformation is large-block angular, not pixel-glitch */
+      turb.setAttribute('baseFrequency',(0.006+0.002*p).toFixed(4)+' '+(0.006+0.002*p).toFixed(4));
+      disp.setAttribute('scale',(Math.abs(wob)*40+p*55).toFixed(2));
+    }
+    if(p<1) requestAnimationFrame(step); else done();
+  }
+  requestAnimationFrame(step);
+}
+
+/* =========================================================
+   SANDBOX SCREEN
+   ========================================================= */
+const sbSvg = document.getElementById('sbSvg');
+const SB_W = 1000, SB_H = 620;
+let sbMode   = null;
+let sbShapes = [];
+
+function buildSandbox(){
+  sbSvg.innerHTML = '';
+  const tankW=440, tankH=170, gap=60, y0=SB_H-tankH;
+  const leftX  = (SB_W-tankW*2-gap)/2;
+  const rightX = leftX+tankW+gap;
+
+  sbSvg.appendChild(makeTankFrame(leftX, y0, tankW, tankH));
+  sbSvg.appendChild(makeTankFrame(rightX, y0, tankW, tankH));
+
+  const lblL = svgEl('text',{x:leftX+tankW/2,y:y0-12,'text-anchor':'middle',class:'tank-label'});
+  lblL.textContent='SOFT WAVE LIQUID';
+  const lblR = svgEl('text',{x:rightX+tankW/2,y:y0-12,'text-anchor':'middle',class:'tank-label'});
+  lblR.textContent='SPIKE WAVE LIQUID';
+  sbSvg.appendChild(lblL); sbSvg.appendChild(lblR);
+
+  const liquidSoft  = svgEl('path',{fill:'#FCE83A','fill-opacity':'0.78'});
+  const liquidSpike = svgEl('path',{fill:'#FCE83A','fill-opacity':'0.78'});
+  sbSvg.appendChild(liquidSoft);
+  sbSvg.appendChild(liquidSpike);
+
+  let t=0;
+  function animLiquid(){
+    t+=0.018;
+    liquidSoft.setAttribute('d',  wavePath(leftX, y0,tankW,tankH,'soft', t));
+    liquidSpike.setAttribute('d', wavePath(rightX,y0,tankW,tankH,'spike',t));
+    requestAnimationFrame(animLiquid);
+  }
+  animLiquid();
+
+  sbSvg._tanks = {
+    soft:  {x:leftX,  y:y0, w:tankW, h:tankH},
+    spike: {x:rightX, y:y0, w:tankW, h:tankH}
+  };
+  sbShapes.forEach(s=>sbSvg.appendChild(s.group));
+}
+
+function makeTankFrame(x,y,w,h){
+  const g = svgEl('g');
+  g.appendChild(svgEl('path',{
+    d:`M${x},${y-30} L${x},${y+h} L${x+w},${y+h} L${x+w},${y-30}`,
+    fill:'none',stroke:'#2b2620','stroke-width':'2'
+  }));
+  return g;
+}
+
+function wavePath(x,y,w,h,type,t){
+  const baseY=y+24;
+  if(type==='soft'){
+    const pts=[],steps=30;
+    for(let i=0;i<=steps;i++){
+      const px=x+(w/steps)*i;
+      const py=baseY+Math.sin((px-x)*0.02+t)*9+Math.sin((px-x)*0.045-t*1.6)*4;
+      pts.push([px,py]);
+    }
+    return 'M'+x+','+(y+h)+' L'+pts.map(p=>p.join(',')).join(' L')+' L'+(x+w)+','+(y+h)+' Z';
+  } else {
+    const pts=[],steps=16;
+    for(let i=0;i<=steps;i++){
+      const px=x+(w/steps)*i;
+      const tri=Math.abs((((px-x)*0.05+t*1.4)%2)-1)*2-1;
+      const py=baseY+tri*12;
+      pts.push([px,py]);
+    }
+    return 'M'+x+','+(y+h)+' L'+pts.map(p=>p.join(',')).join(' L')+' L'+(x+w)+','+(y+h)+' Z';
+  }
+}
+
+buildSandbox();
+
+/* toolbar */
+document.querySelectorAll('.sb-toolbar .sb-btn[data-shape]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const shape = btn.dataset.shape;
+    if(shape==='draw'){
+      sbMode = (sbMode==='draw') ? null : 'draw';
+      document.querySelectorAll('.sb-btn[data-shape]').forEach(b=>b.classList.remove('active'));
+      if(sbMode==='draw') btn.classList.add('active');
+      return;
+    }
+    sbMode=null;
+    document.querySelectorAll('.sb-btn[data-shape]').forEach(b=>b.classList.remove('active'));
+    addPresetShape(shape);
+  });
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  sbShapes=[]; sbMode=null;
+  document.querySelectorAll('.sb-btn[data-shape]').forEach(b=>b.classList.remove('active'));
+  buildSandbox();
+});
+
+function addPresetShape(type){
+  const cx=150+Math.random()*200, cy=120+Math.random()*160, size=70;
+  let path;
+  if(type==='circle'){
+    path=`M${cx-size},${cy} a${size},${size} 0 1,0 ${size*2},0 a${size},${size} 0 1,0 ${-size*2},0`;
+  } else if(type==='square'){
+    path=`M${cx-size},${cy-size} L${cx+size},${cy-size} L${cx+size},${cy+size} L${cx-size},${cy+size} Z`;
+  } else {
+    path=`M${cx},${cy-size} L${cx+size},${cy+size} L${cx-size},${cy+size} Z`;
+  }
+  createShape(path);
+}
+
+function createShape(pathData){
+  const group = svgEl('g',{class:'sb-shape'});
+  const p     = svgEl('path',{d:pathData,fill:'#FF5A1F'});
+  group.appendChild(p);
+  sbSvg.appendChild(group);
+  const shapeObj = {group, path:p, lockedState:'normal'};
+  sbShapes.push(shapeObj);
+  attachShapeDrag(shapeObj);
+}
+
+/* freehand drawing */
+let drawing = null;
+sbSvg.addEventListener('pointerdown',(e)=>{
+  if(sbMode!=='draw') return;
+  const pt = sbCoords(e);
+  drawing = {points:[pt], path:svgEl('path',{fill:'#FF5A1F',stroke:'none'})};
+  sbSvg.appendChild(drawing.path);
+  sbSvg.setPointerCapture(e.pointerId);
+});
+sbSvg.addEventListener('pointermove',(e)=>{
+  if(!drawing) return;
+  drawing.points.push(sbCoords(e));
+  drawing.path.setAttribute('d', smoothPath(drawing.points,false));
+});
+sbSvg.addEventListener('pointerup',(e)=>{
+  if(!drawing) return;
+  if(drawing.points.length>2){
+    drawing.path.setAttribute('d', smoothPath(drawing.points,true));
+    const group = svgEl('g',{class:'sb-shape'});
+    sbSvg.appendChild(group);
+    group.appendChild(drawing.path);
+    const shapeObj = {group, path:drawing.path, lockedState:'normal'};
+    sbShapes.push(shapeObj);
+    attachShapeDrag(shapeObj);
+  } else { drawing.path.remove(); }
+  drawing=null;
+});
+
+function sbCoords(e){
+  const r=sbSvg.getBoundingClientRect();
+  return [(e.clientX-r.left)/r.width*SB_W, (e.clientY-r.top)/r.height*SB_H];
+}
+function smoothPath(points,close){
+  if(points.length<2) return '';
+  let d=`M${points[0][0]},${points[0][1]}`;
+  for(let i=1;i<points.length;i++) d+=` L${points[i][0]},${points[i][1]}`;
+  if(close) d+=' Z';
+  return d;
+}
+
+/* drag shapes — lock state on exit, only override if >50% in a different tank */
+function attachShapeDrag(shapeObj){
+  let dragging=false, start={x:0,y:0};
+  const g=shapeObj.group;
+  g.addEventListener('pointerdown',(e)=>{
+    dragging=true; g.classList.add('grabbing');
+    start=sbCoords(e);
+    g.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+  });
+  g.addEventListener('pointermove',(e)=>{
+    if(!dragging) return;
+    const cur=sbCoords(e);
+    const dx=cur[0]-start[0], dy=cur[1]-start[1];
+    start=cur;
+    const tr=g._tx||{x:0,y:0};
+    tr.x+=dx; tr.y+=dy;
+    g._tx=tr;
+    g.setAttribute('transform',`translate(${tr.x},${tr.y})`);
+    updateShapeState(shapeObj, /*isDragging*/true);
+  });
+  g.addEventListener('pointerup',(e)=>{
+    if(!dragging) return;
+    dragging=false; g.classList.remove('grabbing');
+    updateShapeState(shapeObj, /*isDragging*/false);
+  });
+}
+
+/*
+  State machine:
+  - While dragging AND centre is inside a tank: show that tank's effect (preview)
+  - On drop inside tank: lock to that tank's state
+  - On drop outside all tanks: keep the lockedState (don't revert)
+  - Only switch locked state when >50% of bbox is inside a NEW tank
+*/
+function updateShapeState(shapeObj, isDragging){
+  const bbox = shapeObj.group.getBBox();
+  const tr   = shapeObj.group._tx||{x:0,y:0};
+  const cx   = bbox.x+bbox.width/2 +tr.x;
+  const cy   = bbox.y+bbox.height/2+tr.y;
+  const tanks= sbSvg._tanks;
+
+  const inSoft  = cy>tanks.soft.y -30 && cx>tanks.soft.x  && cx<tanks.soft.x +tanks.soft.w;
+  const inSpike = cy>tanks.spike.y-30 && cx>tanks.spike.x && cx<tanks.spike.x+tanks.spike.w;
+
+  let displayState;
+  if(isDragging){
+    // while dragging: preview whichever tank the centre is in, else keep lock
+    if(inSoft)       displayState='soft';
+    else if(inSpike) displayState='spike';
+    else             displayState=shapeObj.lockedState;
+  } else {
+    // on drop: only update lock if dropping into a tank
+    if(inSoft){
+      shapeObj.lockedState='soft';
+    } else if(inSpike){
+      shapeObj.lockedState='spike';
+    }
+    // else: keep existing lockedState (don't revert to normal)
+    displayState=shapeObj.lockedState;
+  }
+
+  shapeObj.path.classList.remove('final-soft','final-spike');
+  if(displayState==='soft')  shapeObj.path.classList.add('final-soft');
+  if(displayState==='spike') shapeObj.path.classList.add('final-spike');
+}
+document.getElementById('jjangjiClose')
+  .addEventListener('click', hideJjangji);
+
+</script>
+</body>
+</html>
+
